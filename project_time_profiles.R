@@ -8,7 +8,7 @@ con <- dbConnect(dbDriver("MySQL"), user = "root", password = "", dbname = "reve
 
 sql <- paste("select subcloud.service_id, subcloud.opportunity_id, timelog.is_psm, subcloud.account_name, subcloud.cik, subcloud.registrant_type, 
              subcloud.solution, subcloud.SrPSM, subcloud.PSM, subcloud.CSM, subcloud.Sr_CSM, subcloud.service_name, subcloud.cs_ps, 
-             subcloud.service_type, subcloud.form, subcloud.quarter_end, subcloud.filing_date, subcloud.filing_deadline, subcloud.filing_deadline_recalc,
+             subcloud.service_type, subcloud.form, subcloud.quarter_end, subcloud.filing_date, timelog.logged_date, subcloud.filing_deadline, subcloud.filing_deadline_recalc,
              subcloud.service_status, subcloud.customer_status, subcloud.year_end, subcloud.reporting_period, subcloud.service_period, subcloud.list_price, 
              subcloud.sales_price, timelog.Billable, subcloud.filing_week_num, logged_week_num, relative_week_num, sum(timelog.hours) 
              from subcloud left join timelog 
@@ -20,3 +20,7 @@ query <- dbGetQuery(con, sql)
 dbDisconnect(con)
 
 names(query)[names(query) == "sum(timelog.hours)"] <- "time"
+
+agg_time <- aggregate(time ~ account_name + service_name + service_type + form + relative_week_num, FUN = sum, data = query)
+
+ggplot(agg_time, aes(relative_week_num, time))+geom_point(aes(color = service_type), alpha = .2)+facet_wrap(~ service_type)
