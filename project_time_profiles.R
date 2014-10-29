@@ -53,8 +53,8 @@ write.csv(result, file = "average_time.csv", row.names = F, na = "") #averaged t
 for (i in 1:length(unique(agg_time_long$service_type))){
   for(j in 1:length(unique(agg_time_long$form))){
     loop <-agg_time_long[agg_time_long$service_type %in% unique(agg_time_long$service_type)[i] &
-                      agg_time_test$form %in% unique(agg_time_long$form)[j], ]
-    if(dim(loop)[1] > 0){
+                      agg_time_long$form %in% unique(agg_time_long$form)[j], ]
+    if(length(unique(loop$account_name)) > 10){
       s <- ggplot(loop, aes(relative_week_num, time))+geom_line(alpha = .2) + geom_point()   
       ggsave(paste(unique(agg_time_long$service_type)[i]," ", unique(agg_time_long$form)[j], '.png', collapse = ""), plot = s, width = 10.5, height = 7)
     }
