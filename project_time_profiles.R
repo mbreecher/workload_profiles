@@ -1,4 +1,5 @@
 library(RMySQL)
+library(reshape2)
 setwd("C:/R/workspace")
 source("get_query.r")
 setwd("C:/R/workspace/workload_profile")
@@ -20,7 +21,42 @@ query <- dbGetQuery(con, sql)
 dbDisconnect(con)
 
 names(query)[names(query) == "sum(timelog.hours)"] <- "time"
+query$relative_week_num <- -query$relative_week_num #reverse relative week int for more intuitive presentation
 
-agg_time <- aggregate(time ~ account_name + service_name + service_type + form + relative_week_num, FUN = sum, data = query)
+#aggregate and recast in a wide format to present time by relative weeks
+agg_time_long <- aggregate(time ~ account_name + service_name + service_type + form + relative_week_num, FUN = sum, data = query)
+agg_time <- dcast(agg_time_long, account_name + service_name + service_type + form ~ relative_week_num, sum, value.var = "time")
 
-ggplot(agg_time, aes(relative_week_num, time))+geom_point(aes(color = service_type), alpha = .2)+facet_wrap(~ service_type)
+#get average hours by project type by relative week
+row_header <- c("account_name", "service_name", "service_type", "form")
+result <- c()
+#for each combination of service type and form
+for (i in 1:length(unique(agg_time$service_type))){
+  for(j in 1:length(unique(agg_time$form))){
+    #subset the agg_time dataframe
+    loop <-agg_time[agg_time$service_type %in% unique(agg_time$service_type)[i] &
+                      agg_time_test$form %in% unique(agg_time$form)[j]
+                    , !(names(agg_time) %in% row_header)]
+    if(dim(loop)[1] > 0){ #if the subset is valid, return the mean time per relative week
+      means <- colMeans(loop)
+      result <- rbind(result, cbind(cbind(cbind(unique(agg_time$service_type)[i], unique(agg_time$form)[j]), dim(loop)[1]), t(as.data.frame(means))))
+    }
+  }
+}
+
+#output
+setwd("C:/R/workspace/workload_profile/output")
+write.csv(agg_time, file = "aggregate_time.csv", row.names = F, na = "") #detailed collapsed time for each project
+write.csv(result, file = "average_time.csv", row.names = F, na = "") #averaged time by service and form type
+
+#view time graphically by type
+for (i in 1:length(unique(agg_time_long$service_type))){
+  for(j in 1:length(unique(agg_time_long$form))){
+    loop <-agg_time_long[agg_time_long$service_type %in% unique(agg_time_long$service_type)[i] &
+                      agg_time_test$form %in% unique(agg_time_long$form)[j], ]
+    if(dim(loop)[1] > 0){
+      s <- ggplot(loop, aes(relative_week_num, time))+geom_line(alpha = .2) + geom_point()   
+      ggsave(paste(unique(agg_time_long$service_type)[i]," ", unique(agg_time_long$form)[j], '.png', collapse = ""), plot = s, width = 10.5, height = 7)
+    }
+  }
+}
