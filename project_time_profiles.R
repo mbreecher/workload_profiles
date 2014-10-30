@@ -1,5 +1,6 @@
 library(RMySQL)
 library(reshape2)
+library(plyr)
 setwd("C:/R/workspace")
 source("get_query.r")
 setwd("C:/R/workspace/workload_profile")
@@ -30,19 +31,16 @@ agg_time <- dcast(agg_time_long, account_name + service_name + service_type + fo
 #get average hours by project type by relative week
 row_header <- c("account_name", "service_name", "service_type", "form")
 result <- c()
-#for each combination of service type and form
-for (i in 1:length(unique(agg_time$service_type))){
-  for(j in 1:length(unique(agg_time$form))){
-    #subset the agg_time dataframe
-    loop <-agg_time[agg_time$service_type %in% unique(agg_time$service_type)[i] &
-                      agg_time_test$form %in% unique(agg_time$form)[j]
-                    , !(names(agg_time) %in% row_header)]
-    if(dim(loop)[1] > 0){ #if the subset is valid, return the mean time per relative week
-      means <- colMeans(loop)
-      result <- rbind(result, cbind(cbind(cbind(unique(agg_time$service_type)[i], unique(agg_time$form)[j]), dim(loop)[1]), t(as.data.frame(means))))
-    }
-  }
-}
+
+#report mean, and standard deviation by service type and form by week
+means <- ddply(agg_time, .(service_type,form ), numcolwise(mean))
+means$type <- "mean"
+stdevs <- ddply(agg_time, .(service_type,form ), numcolwise(sd))
+stdevs$type <- "std. dev."
+result <- rbind(means, stdevs)
+result <- result[order(result$service_type, result$form),]
+head <- c("service_type", "form", "type")
+result <- result[, c(head, names(result)[!(names(result) %in% head)])]
 
 #output
 setwd("C:/R/workspace/workload_profile/output")
