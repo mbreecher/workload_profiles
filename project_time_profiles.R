@@ -33,6 +33,7 @@ row_header <- c("account_name", "service_name", "service_type", "form")
 result <- c()
 
 #report mean, and standard deviation by service type and form by week
+#use ddply numcolwise on wide format data
 means <- ddply(agg_time, .(service_type,form ), numcolwise(mean))
 means$type <- "mean"
 stdevs <- ddply(agg_time, .(service_type,form ), numcolwise(sd))
@@ -45,16 +46,21 @@ result <- result[, c(head, names(result)[!(names(result) %in% head)])]
 #output
 setwd("C:/R/workspace/workload_profile/output")
 write.csv(agg_time, file = "aggregate_time.csv", row.names = F, na = "") #detailed collapsed time for each project
-write.csv(result, file = "average_time_test.csv", row.names = F, na = "") #averaged time by service and form type
+write.csv(result, file = "average_time.csv", row.names = F, na = "") #averaged time by service and form type
 
 #view time graphically by type
-for (i in 1:length(unique(agg_time_long$service_type))){
-  for(j in 1:length(unique(agg_time_long$form))){
-    loop <-agg_time_long[agg_time_long$service_type %in% unique(agg_time_long$service_type)[i] &
-                      agg_time_long$form %in% unique(agg_time_long$form)[j], ]
-    if(length(unique(loop$account_name)) > 10){
-      s <- ggplot(loop, aes(relative_week_num, time))+geom_line(alpha = .2) + geom_point()   
-      ggsave(paste(unique(agg_time_long$service_type)[i]," ", unique(agg_time_long$form)[j], '.png', collapse = ""), plot = s, width = 10.5, height = 7)
+# casting the data wide made the relative week offset a factor, so recast from query using ddply and summarize
+plot_time <- ddply(query, .(service_type,form, relative_week_num ), summarize, means = mean(time))
+
+for (i in 1:length(unique(plot_time$service_type))){
+  for(j in 1:length(unique(plot_time$form))){
+    #loop <-agg_time_long[agg_time_long$service_type %in% unique(agg_time_long$service_type)[i] &
+    #                  agg_time_long$form %in% unique(agg_time_long$form)[j], ]
+    loop <-plot_time[plot_time$service_type %in% unique(plot_time$service_type)[i] &
+                       plot_time$form %in% unique(plot_time$form)[j], ]
+    if(dim(loop)[1] > 10){
+      s <- ggplot(loop, aes(relative_week_num, means))+geom_line(alpha = .2) + geom_point()
+      ggsave(paste(unique(plot_time$service_type)[i]," ", unique(plot_time$form)[j], '.png', collapse = ""), plot = s, width = 10.5, height = 7)
     }
   }
 }
