@@ -45,7 +45,7 @@ result <- result[, c(head, names(result)[!(names(result) %in% head)])]
 #output
 setwd("C:/R/workspace/workload_profile/output")
 write.csv(agg_time, file = "aggregate_time.csv", row.names = F, na = "") #detailed collapsed time for each project
-write.csv(result, file = "average_time.csv", row.names = F, na = "") #averaged time by service and form type
+write.csv(result, file = "average_time_test.csv", row.names = F, na = "") #averaged time by service and form type
 
 #view time graphically by type
 for (i in 1:length(unique(agg_time_long$service_type))){
