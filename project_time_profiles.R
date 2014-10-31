@@ -1,9 +1,11 @@
 library(RMySQL)
 library(reshape2)
 library(plyr)
+library(ggplot2)
 setwd("C:/R/workspace")
 source("get_query.r")
 setwd("C:/R/workspace/workload_profile")
+source("helpers.r")
 
 #grab project and collapsed time data from mysql database
 con <- dbConnect(dbDriver("MySQL"), user = "root", password = "", dbname = "revenue_analysis")
@@ -48,19 +50,42 @@ setwd("C:/R/workspace/workload_profile/output")
 write.csv(agg_time, file = "aggregate_time.csv", row.names = F, na = "") #detailed collapsed time for each project
 write.csv(result, file = "average_time.csv", row.names = F, na = "") #averaged time by service and form type
 
-#view time graphically by type
-# casting the data wide made the relative week offset a factor, so recast from query using ddply and summarize
-plot_time <- ddply(query, .(service_type,form, relative_week_num ), summarize, means = mean(time))
+#view time averages graphically by type
+# recast from query using ddply and summarize
+# plot_time <- ddply(query, .(service_type,form, relative_week_num ), summarize, means = mean(time))
+# plot_time <- query[, c("service_type", "form", "relative_week_num", "time")]
+#need to reshape long to include all the zeroes for correct averages
+week_nums <- names(result)[!(names(result) %in% c("service_type", "form", "type"))]
+plot_time <- reshape(result, varying = week_nums, v.names = "mean", timevar = "relative_week_num", times = week_nums, direction = "long")
+plot_time$relative_week_num <- as.numeric(plot_time$relative_week_num)
+plot_time[plot_time$form %in% c("S1/S4"),]$form <- "S1_S4" #change "S1/S4" form type so it can be save in windows
+plot_time <- plot_time[plot_time$mean > 1 & !is.na(plot_time$mean),]
 
 for (i in 1:length(unique(plot_time$service_type))){
   for(j in 1:length(unique(plot_time$form))){
     #loop <-agg_time_long[agg_time_long$service_type %in% unique(agg_time_long$service_type)[i] &
     #                  agg_time_long$form %in% unique(agg_time_long$form)[j], ]
     loop <-plot_time[plot_time$service_type %in% unique(plot_time$service_type)[i] &
-                       plot_time$form %in% unique(plot_time$form)[j], ]
+                       plot_time$form %in% unique(plot_time$form)[j] &
+                       plot_time$relative_week_num > -20 & plot_time$relative_week_num < 3 &
+                       plot_time$type %in% c("mean"), ]
     if(dim(loop)[1] > 10){
-      s <- ggplot(loop, aes(relative_week_num, means))+geom_line(alpha = .2) + geom_point()
+      s <- ggplot(loop, aes(relative_week_num, mean)) + geom_jitter(alpha = .4, size = 3) +
+                  stat_smooth(method = "lm", se=T, formula = y ~ poly(x, 4), color = "red") +
+                  annotate("text", x=min(loop$relative_week_num), y=max(loop$mean), 
+                  label=lm_eqn(loop$relative_week_num, loop$mean, 4), hjust=0, size=8, parse=TRUE)
+                  #family="Times", face="italic", parse=TRUE)
+#                   theme(plot.title = lm_eqn(loop, loop$relative_week_num, loop$mean, 4))
       ggsave(paste(unique(plot_time$service_type)[i]," ", unique(plot_time$form)[j], '.png', collapse = ""), plot = s, width = 10.5, height = 7)
     }
   }
 }
+
+#playing with plots and lms
+plot_model <- plot_time[plot_time$relative_week_num > -20 & plot_time$relative_week_num < 3, ]
+plot_model <- plot_model[plot_model$service_type %in% c("Standard Import") & 
+                           plot_model$form %in% c("10-Q") &
+                           plot_model$type %in% c("mean"),]
+ggplot(data = plot_model,aes( x = relative_week_num, y = mean)) + 
+  geom_point(alpha=.5) + 
+  stat_smooth(method = "lm", se=T, formula = y ~ poly(x, 4), color = "red")
