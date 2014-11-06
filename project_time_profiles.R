@@ -5,10 +5,11 @@ library(ggplot2)
 setwd("C:/R/workspace")
 source("get_query.r")
 setwd("C:/R/workspace/workload_profile")
+load("db_creds.Rdata")
 source("helpers.r")
 
 #grab project and collapsed time data from mysql database
-con <- dbConnect(dbDriver("MySQL"), user = "root", password = "", dbname = "revenue_analysis")
+con <- dbConnect(dbDriver("MySQL"), user = username, password = password, dbname = "revenue_analysis")
 
 sql <- paste("select subcloud.service_id, subcloud.opportunity_id, timelog.is_psm, subcloud.account_name, subcloud.cik, subcloud.registrant_type, 
              subcloud.solution, subcloud.SrPSM, subcloud.PSM, subcloud.CSM, subcloud.Sr_CSM, subcloud.service_name, subcloud.cs_ps, 
