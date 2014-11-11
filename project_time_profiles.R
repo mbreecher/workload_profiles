@@ -7,7 +7,7 @@ source("get_query.r")
 setwd("C:/R/workspace/workload_profile")
 load("db_creds.Rdata")
 source("helpers.r")
-source("plot_functions.r")
+source("make_plots.r")
 
 #grab project and collapsed time data from mysql database
 con <- dbConnect(dbDriver("MySQL"), user = username, password = password, dbname = "revenue_analysis")
@@ -39,6 +39,8 @@ agg_time_long <- melt(agg_time, id.vars = c("account_name", "service_name", "ser
 agg_time_long$relative_week <- as.numeric(as.character(agg_time_long$relative_week))
 agg_time_long[agg_time_long$form %in% c("S1/S4"),]$form <- c("S1.S4")
 agg_time_long[agg_time_long$form %in% c("N/A"),]$form <- c("NA")
+
+
 #all-time ggplots
 avg_time_by_type <- ddply(agg_time_long, c("service_type", "form", "relative_week"), summarise,
                                      sum = sum(time),
@@ -94,10 +96,44 @@ for (i in 1:length(unique(avg_time_by_quarter_by_type$service_type))){
 #output csv versions for review
 setwd("C:/R/workspace/workload_profile/output")
 write.csv(agg_time, file = "aggregate_time.csv", row.names = F, na = "") #detailed collapsed time for each project
+write.csv(agg_time_long, file = "aggregate_time_long.csv", row.names = F, na = "") #detailed collapsed time for each project
 write.csv(avg_time_by_type, file = "average_time.csv", row.names = F, na = "") #averaged time by service and form type
 write.csv(avg_time_by_quarter_by_type, file = "average_time_by_quarter.csv", row.names = F, na = "") #averaged time by service and form type
 
 #playing with plots and lms
+service_types <- c("Standard Import", "Roll Forward", "Full Service Roll Forward", "Detail Tagging")
+form_types <- c("10-Q", "10-K", "Q-Q", "Q-K", "K-Q", "K-K")
+agg_time_model <- aggregate(time ~ service_type + form + relative_week, data = agg_time_long,  FUN = "mean")
+agg_time_model <- agg_time_model[agg_time_model$service_type %in% service_types & agg_time_model$form %in% form_types,]
+agg_time_model <- agg_time_model[agg_time_model$relative_week <= 3 & agg_time_model$relative_week >= -20, ]
+agg_time_model <- agg_time_model[agg_time_model$time >= 1,]
+model_params <- ddply(agg_time_model, c("service_type", "form"), summarise,
+                          sum = sum(time),
+                          mean = mean(time),
+                          sd = sd(time),
+                          se = sd / sqrt(length(time)),
+                          lm0 = lm(formula = relative_week ~ poly(time, 4))$coef[1],
+                          lm1 = lm(formula = relative_week ~ poly(time, 4))$coef[2],
+                          lm2 = lm(formula = relative_week ~ poly(time, 4))$coef[3],
+                          lm3 = lm(formula = relative_week ~ poly(time, 4))$coef[4],
+                          lm4 = lm(formula = relative_week ~ poly(time, 4))$coef[5]
+                      )
+# alternate
+# model_params <- c()
+# case <- c()
+# for (i in 1:dim(unique(agg_time_model[,c("service_type", "form")]))[1]){
+#   loop <- agg_time_model[agg_time_model$service_type %in% unique(agg_time_model[,c("service_type", "form")])[i,1] &
+#                            agg_time_model$form %in% unique(agg_time_model[,c("service_type", "form")])[i,2],]
+#   
+#   model_params <- rbind(model_params, lm(formula = loop$relative_week ~ poly(loop$time, 4))$coef)
+#   case <- rbind(case, c(unique(agg_time_model[,c("service_type", "form")])[i,1], unique(agg_time_model[,c("service_type", "form")])[i,2]))
+# }
+# models <- cbind(case,model_params)
+
+setwd("C:/R/workspace/workload_profile/output")
+write.csv(model_params, file = "model_params.csv", row.names = F, na = "") #parameters for lm
+write.csv(agg_time_model, file = "model_inputs.csv", row.names = F, na = "") #parameters for lm
+
 plot_model <- plot_time[plot_time$relative_week_num > -20 & plot_time$relative_week_num < 3, ]
 plot_model <- plot_model[plot_model$service_type %in% c("Standard Import") & 
                            plot_model$form %in% c("10-Q") &
