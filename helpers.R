@@ -1,4 +1,4 @@
-lm_eqn = function(x, y, order = 3){
+lm_eqn = function(x, y, order = 4){
   m=lm(y ~ poly(x, order))
   eq <- substitute(italic(y) == a + b %.% italic(x)+ c %.% italic(x)^2~ + d %.% italic(x)^3~ + e %.% italic(x)^4~ ","~~italic(r)^2~"="~r2,
                  list(a = format(coef(m)[1], digits = 2),
