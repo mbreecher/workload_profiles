@@ -108,15 +108,16 @@ agg_time_model <- agg_time_model[agg_time_model$service_type %in% service_types 
 agg_time_model <- agg_time_model[agg_time_model$relative_week <= 3 & agg_time_model$relative_week >= -20, ]
 agg_time_model <- agg_time_model[agg_time_model$time >= 1,]
 model_params <- ddply(agg_time_model, c("service_type", "form"), summarise,
+                          num = length(time),
                           sum = sum(time),
                           mean = mean(time),
                           sd = sd(time),
                           se = sd / sqrt(length(time)),
-                          lm0 = lm(formula = relative_week ~ poly(time, 4))$coef[1],
-                          lm1 = lm(formula = relative_week ~ poly(time, 4))$coef[2],
-                          lm2 = lm(formula = relative_week ~ poly(time, 4))$coef[3],
-                          lm3 = lm(formula = relative_week ~ poly(time, 4))$coef[4],
-                          lm4 = lm(formula = relative_week ~ poly(time, 4))$coef[5]
+                          lm0 = lm(formula = relative_week ~ poly(time, 4, raw = T))$coef[1],
+                          lm1 = lm(formula = relative_week ~ poly(time, 4, raw = T))$coef[2],
+                          lm2 = lm(formula = relative_week ~ poly(time, 4, raw = T))$coef[3],
+                          lm3 = lm(formula = relative_week ~ poly(time, 4, raw = T))$coef[4],
+                          lm4 = lm(formula = relative_week ~ poly(time, 4, raw = T))$coef[5]
                       )
 # alternate
 # model_params <- c()
@@ -134,10 +135,8 @@ setwd("C:/R/workspace/workload_profile/output")
 write.csv(model_params, file = "model_params.csv", row.names = F, na = "") #parameters for lm
 write.csv(agg_time_model, file = "model_inputs.csv", row.names = F, na = "") #parameters for lm
 
-plot_model <- plot_time[plot_time$relative_week_num > -20 & plot_time$relative_week_num < 3, ]
-plot_model <- plot_model[plot_model$service_type %in% c("Standard Import") & 
-                           plot_model$form %in% c("10-Q") &
-                           plot_model$type %in% c("mean"),]
-ggplot(data = plot_model,aes( x = relative_week_num, y = mean)) + 
+plot_model <- agg_time_model[agg_time_model$service_type %in% c("Standard Import") & 
+                               agg_time_model$form %in% c("10-Q"),]
+ggplot(data = plot_model,aes( x = relative_week, y = time)) + 
   geom_point(alpha=.5) + 
-  stat_smooth(method = "lm", se=T, formula = y ~ poly(x, 4), color = "red")
+  stat_smooth(method = "lm", se=F, formula = y ~ poly(x, 4), color = "red")
