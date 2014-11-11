@@ -72,17 +72,30 @@ for (i in 1:length(unique(avg_time_by_type$service_type))){
 
 
 # model by quarter to see if some should be excluded, or if some should be modeled differently
-avg_time_by_quarter_by_type <- ddply(agg_time_long, c("service_type", "form", "reporting_period"), summarise,
+avg_time_by_quarter_by_type <- ddply(agg_time_long, c("service_type", "form", "reporting_period", "relative_week"), summarise,
                                      sum = sum(time),
                                      mean = mean(time),
                                      sd = sd(time),
                                      se = sd / sqrt(length(time)))
 
-#output
+setwd("C:/R/workspace/workload_profile")
+source("plot_functions.r")
+#plots with average weekly time by project by quarter
+for (i in 1:length(unique(avg_time_by_quarter_by_type$service_type))){
+  for(j in 1:length(unique(avg_time_by_quarter_by_type$form))){
+    s <- plot_averages_by_quarter(avg_time_by_quarter_by_type[avg_time_by_quarter_by_type$service_type %in% unique(avg_time_by_quarter_by_type$service_type)[i] &
+                                          avg_time_by_quarter_by_type$form %in% unique(avg_time_by_quarter_by_type$form)[j],])
+    setwd("C:/R/workspace/workload_profile/output/weekly_time")
+    if (!is.null(s)){ggsave(paste(unique(avg_time_by_quarter_by_type$service_type)[i]," ", unique(avg_time_by_quarter_by_type$form)[j], "-avg_by_qtr", '.png', collapse = ""), 
+                            plot = s, width = 10.5, height = 7)}
+  }
+}
+
+#output csv versions for review
 setwd("C:/R/workspace/workload_profile/output")
 write.csv(agg_time, file = "aggregate_time.csv", row.names = F, na = "") #detailed collapsed time for each project
 write.csv(avg_time_by_type, file = "average_time.csv", row.names = F, na = "") #averaged time by service and form type
-
+write.csv(avg_time_by_quarter_by_type, file = "average_time_by_quarter.csv", row.names = F, na = "") #averaged time by service and form type
 
 #playing with plots and lms
 plot_model <- plot_time[plot_time$relative_week_num > -20 & plot_time$relative_week_num < 3, ]
