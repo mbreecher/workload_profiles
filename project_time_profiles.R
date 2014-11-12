@@ -119,24 +119,19 @@ model_params <- ddply(agg_time_model, c("service_type", "form"), summarise,
                           lm3 = lm(formula = time ~ poly(relative_week, 4, raw = T))$coef[4],
                           lm4 = lm(formula = time ~ poly(relative_week, 4, raw = T))$coef[5]
                       )
-# alternate
-# model_params <- c()
-# case <- c()
-# for (i in 1:dim(unique(agg_time_model[,c("service_type", "form")]))[1]){
-#   loop <- agg_time_model[agg_time_model$service_type %in% unique(agg_time_model[,c("service_type", "form")])[i,1] &
-#                            agg_time_model$form %in% unique(agg_time_model[,c("service_type", "form")])[i,2],]
-#   
-#   model_params <- rbind(model_params, lm(formula = loop$relative_week ~ poly(loop$time, 4))$coef)
-#   case <- rbind(case, c(unique(agg_time_model[,c("service_type", "form")])[i,1], unique(agg_time_model[,c("service_type", "form")])[i,2]))
-# }
-# models <- cbind(case,model_params)
+
+setwd("C:/R/workspace/workload_profile/data")
+save(model_params, file = "models.Rdata")
+save(agg_time_model, file = "aggregate_time_for_workload_model.Rdata")
 
 setwd("C:/R/workspace/workload_profile/output")
 write.csv(model_params, file = "model_params.csv", row.names = F, na = "") #parameters for lm
 write.csv(agg_time_model, file = "model_inputs.csv", row.names = F, na = "") #parameters for lm
 
-plot_model <- agg_time_model[agg_time_model$service_type %in% c("Standard Import") & 
-                               agg_time_model$form %in% c("10-Q"),]
-ggplot(data = plot_model,aes( x = relative_week, y = time)) + 
-  geom_point(alpha=.5) + 
-  stat_smooth(method = "lm", se=F, formula = y ~ poly(x, 4), color = "red")
+# plot_model <- agg_time_model[agg_time_model$service_type %in% c("Standard Import") & 
+#                                agg_time_model$form %in% c("10-Q"),]
+# ggplot(data = plot_model,aes( x = relative_week, y = time)) + 
+#   geom_point(alpha=.5) + 
+#   stat_smooth(method = "lm", se=F, formula = y ~ poly(x, 4), color = "red")
+
+
