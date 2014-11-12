@@ -128,6 +128,7 @@ setwd("C:/R/workspace/workload_profile/output")
 write.csv(model_params, file = "model_params.csv", row.names = F, na = "") #parameters for lm
 write.csv(agg_time_model, file = "model_inputs.csv", row.names = F, na = "") #parameters for lm
 
+  
 # plot_model <- agg_time_model[agg_time_model$service_type %in% c("Standard Import") & 
 #                                agg_time_model$form %in% c("10-Q"),]
 # ggplot(data = plot_model,aes( x = relative_week, y = time)) + 
