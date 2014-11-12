@@ -7,7 +7,7 @@ plot_all_time <- function(plot_time, week_min = -20, week_max = 3){
     s <- ggplot(loop, aes(relative_week, time)) + geom_jitter(alpha = .4, size = 3) +
       stat_smooth(method = "lm", se=F, formula = y ~ poly(x, 4), color = "red") +
       annotate("text", x=min(loop$relative_week), y=max(loop$time), 
-               label=lm_eqn(loop$relative_week, loop$time, 4), hjust=0, size=8, parse=TRUE)
+               label=lm_eqn(loop$time,loop$relative_week), hjust=0, size=6, parse=TRUE)
     s
   }else{
     NULL
@@ -21,7 +21,7 @@ plot_averages <- function(plot_time, week_min = -20, week_max = 3){
     s <- ggplot(loop, aes(relative_week, mean)) + geom_point(alpha = .4, size = 3) +
       stat_smooth(method = "lm", se=F, formula = y ~ poly(x, 4), color = "red") +
       annotate("text", x=min(loop$relative_week), y=max(loop$mean), 
-               label=lm_eqn(loop$relative_week, loop$mean, 4), hjust=0, size=8, parse=TRUE)
+               label=lm_eqn(loop$mean, loop$relative_week), hjust=0, size=6, parse=TRUE)
     s
   }else{
     NULL
