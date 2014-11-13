@@ -94,11 +94,11 @@ for (i in 1:dim(unique(avg_time_by_quarter_by_type[,c("service_type", "form")]))
 }
 
 #output csv versions for review
-setwd("C:/R/workspace/workload_profile/output")
-write.csv(agg_time, file = "aggregate_time.csv", row.names = F, na = "") #detailed collapsed time for each project
-write.csv(agg_time_long, file = "aggregate_time_long.csv", row.names = F, na = "") #detailed collapsed time for each project
-write.csv(avg_time_by_type, file = "average_time.csv", row.names = F, na = "") #averaged time by service and form type
-write.csv(avg_time_by_quarter_by_type, file = "average_time_by_quarter.csv", row.names = F, na = "") #averaged time by service and form type
+# setwd("C:/R/workspace/workload_profile/output")
+# write.csv(agg_time, file = "aggregate_time.csv", row.names = F, na = "") #detailed collapsed time for each project
+# write.csv(agg_time_long, file = "aggregate_time_long.csv", row.names = F, na = "") #detailed collapsed time for each project
+# write.csv(avg_time_by_type, file = "average_time.csv", row.names = F, na = "") #averaged time by service and form type
+# write.csv(avg_time_by_quarter_by_type, file = "average_time_by_quarter.csv", row.names = F, na = "") #averaged time by service and form type
 
 #playing with plots and lms
 service_types <- c("Standard Import", "Roll Forward", "Full Service Roll Forward", "Detail Tagging")

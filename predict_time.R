@@ -1,3 +1,9 @@
+library(ggplot2)
+library(RMySQL)
+library(plyr)
+library(reshape2)
+library(IDateTime)
+#week function a part of 
 #predict time
 
 #read in project averages to build model
@@ -65,7 +71,11 @@ head(services)
   high_psm_plot <- ggplot(heavy_load, aes(calendar_week, predicted, color = PSM)) + 
     geom_point() + geom_line()
 
-#delete **
+setwd("C:/R/workspace/workload_profile/output")
+write.csv(workload, file = "workload_avg.csv", row.names = F, na = "")
+write.csv(workload_predicted, file = "workload_predict.csv", row.names = F, na = "")
+
+#temp plots **
 totals_all <- merge(totals, totals_p, by = c("calendar_week"))
 ggplot(totals_all) + geom_point(aes(calendar_week, time)) + geom_line(aes(calendar_week, time, color = 'blue')) +
                     geom_point(aes(calendar_week, predicted)) + geom_line(aes(calendar_week, predicted, color = 'red'))
