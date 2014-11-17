@@ -36,7 +36,7 @@ head(services)
   
   #some plots
   totals_plot <- ggplot(totals, aes(calendar_week, time)) + geom_point()
-  by_psm_plot <- ggplot(totals_psm, aes(calendar_week, time, color = PSM)) + 
+  by_psm_plot <- ggplot(totals_psm, aes(calendar_week, predicted, color = PSM, order = max(predicted))) + 
     geom_point() + geom_line() +
     guides(col = guide_legend(ncol =3))
   high_psm_plot <- ggplot(heavy_load, aes(calendar_week, time, color = PSM)) + 
@@ -64,7 +64,8 @@ head(services)
   heavy_load <- aggregate(predicted ~ PSM + calendar_week, workload_predicted[workload_predicted$predicted >0 & workload_predicted$PSM %in% loaded ,], FUN = sum)
   
   #some plots
-  total_plot <- ggplot(totals_p, aes(calendar_week, predicted)) + geom_point() +
+  total_plot <- ggplot(totals_p, aes(calendar_week, predicted)) + geom_point() + geom_line(color = "lightgreen", size = 2, alpha=.5) +
+    theme(axis.text.y = element_blank()) +
     stat_smooth(method = "lm", se=F, formula = y ~ poly(x, 4), color = "red")
   by_psm_plot <- ggplot(totals_psm, aes(calendar_week, predicted, color = PSM)) + 
     geom_point() + geom_line() +
