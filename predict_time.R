@@ -2,9 +2,6 @@ library(ggplot2)
 library(RMySQL)
 library(plyr)
 library(reshape2)
-library(IDateTime)
-#week function a part of 
-#predict time
 
 #read in project averages to build model
 setwd("C:/R/workspace/workload_profile/data")
@@ -35,7 +32,12 @@ head(services)
   heavy_load <- aggregate(time ~ PSM + calendar_week, workload[workload$time >0 & workload$PSM %in% loaded ,], FUN = sum)
   
   #some plots
-  totals_plot <- ggplot(totals, aes(calendar_week, time)) + geom_point()
+#   totals_plot <- ggplot(totals, aes(calendar_week, time)) + geom_point()
+  totals_plot <- ggplot(totals, aes(calendar_week, time)) + geom_point() + geom_line(color = "lightgreen", size = 2, alpha=.5) +
+    #geom_point(data = py_agg, aes(week, Hours)) + geom_line(data = py_agg, aes(week, Hours),color = "gray", size = 2, alpha=.5) +
+    theme(axis.text.y = element_blank()) +
+    scale_x_continuous(breaks = c(0, 10,12), labels = c("Jan 1", "Mar 1", "Mar 16")) +
+    ggtitle("PS Team Expected Workload by week")
   by_psm_plot <- ggplot(totals_psm, aes(calendar_week, predicted, color = PSM, order = max(predicted))) + 
     geom_point() + geom_line() +
     guides(col = guide_legend(ncol =3))
@@ -66,7 +68,9 @@ head(services)
   #some plots
   total_plot <- ggplot(totals_p, aes(calendar_week, predicted)) + geom_point() + geom_line(color = "lightgreen", size = 2, alpha=.5) +
     theme(axis.text.y = element_blank()) +
-    stat_smooth(method = "lm", se=F, formula = y ~ poly(x, 4), color = "red")
+    scale_x_continuous(breaks = c(0, 10,12), labels = c("Jan 1", "Mar 1", "Mar 16")) +
+    ggtitle("PS Team Expected Workload by week")
+    # + stat_smooth(method = "lm", se=F, formula = y ~ poly(x, 4), color = "red")
   by_psm_plot <- ggplot(totals_psm, aes(calendar_week, predicted, color = PSM)) + 
     geom_point() + geom_line() +
     guides(col = guide_legend(ncol =3))

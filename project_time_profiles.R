@@ -2,10 +2,12 @@ library(RMySQL)
 library(reshape2)
 library(plyr)
 library(ggplot2)
-setwd("C:/R/workspace")
+
+setwd("C:/R/workspace/shared")
 source("get_query.r")
-setwd("C:/R/workspace/workload_profile")
 load("db_creds.Rdata")
+
+setwd("C:/R/workspace/workload_profile")
 source("helpers.r")
 source("plot_functions.r")
 
