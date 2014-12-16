@@ -4,94 +4,76 @@ library(plyr)
 library(ggplot2)
 
 setwd("C:/R/workspace/shared")
-source("get_query.r")
-load("db_creds.Rdata")
+source("transformations.R")
 
 setwd("C:/R/workspace/workload_profile")
 source("helpers.r")
 source("plot_functions.r")
 
-#grab project and collapsed time data from mysql database
-con <- dbConnect(dbDriver("MySQL"), user = username, password = password, dbname = "revenue_analysis")
-
-sql <- paste("select subcloud.service_id, subcloud.opportunity_id, timelog.is_psm, subcloud.account_name, subcloud.cik, subcloud.registrant_type, 
-             subcloud.solution, subcloud.SrPSM, subcloud.PSM, subcloud.CSM, subcloud.Sr_CSM, subcloud.service_name, subcloud.cs_ps, 
-             subcloud.service_type, subcloud.form, subcloud.quarter_end, subcloud.filing_date, timelog.logged_date, subcloud.filing_deadline, subcloud.filing_deadline_recalc,
-             subcloud.service_status, subcloud.customer_status, subcloud.year_end, subcloud.reporting_period, subcloud.service_period, subcloud.list_price, 
-             subcloud.sales_price, timelog.Billable, subcloud.filing_week_num, logged_week_num, relative_week_num, sum(timelog.hours) 
-             from subcloud left join timelog 
-             on subcloud.service_id collate latin1_bin = timelog.service_id collate latin1_bin
-             where subcloud.service_id like 'a0%' and service_status = 'Completed' and is_psm = 1 and not cs_ps = 'CS'
-             group by subcloud.service_id, subcloud.account_name, timelog.is_psm, relative_week_num", sep = "")                
-
-query <- dbGetQuery(con, sql)
-dbDisconnect(con)
-
-names(query)[names(query) == "sum(timelog.hours)"] <- "time"
-query$relative_week_num <- -query$relative_week_num #reverse relative week int for more intuitive presentation
+relative_time <- weekly_time()
 
 #aggregate and recast in a wide format to present time by relative weeks
-agg_time_long <- aggregate(time ~ account_name + service_name + service_type + reporting_period + form + relative_week_num, FUN = sum, data = query)
-agg_time <- dcast(agg_time_long, account_name + service_name + service_type + reporting_period + form ~ relative_week_num, sum, value.var = "time")
+agg_time_long <- aggregate(Hours ~ Account.Name + Service.Name + Service.Type + reportingPeriod + Form.Type + relative_week_num, FUN = sum, data = relative_time)
+agg_time <- dcast(agg_time_long, Account.Name + Service.Name + Service.Type + reportingPeriod + Form.Type ~ relative_week_num, sum, value.var = "Hours")
 # week_nums <- names(agg_time)[!(names(agg_time) %in% c("account_name", "service_type", "reporting_period", "form", "type"))] 
-agg_time_long <- melt(agg_time, id.vars = c("account_name", "service_name", "service_type", "reporting_period", "form"), 
-                      variable.name="relative_week",
-                      value.name="time")
+agg_time_long <- melt(agg_time, id.vars = c("Account.Name", "Service.Name", "Service.Type", "reportingPeriod", "Form.Type"), 
+                      variable.name="relative_week_num",
+                      value.name="Hours")
 #melt made the relative week number a factor, so we need to fix. and change S1/S4 and N/A to writable form
-agg_time_long$relative_week <- as.numeric(as.character(agg_time_long$relative_week))
-agg_time_long[agg_time_long$form %in% c("S1/S4"),]$form <- c("S1.S4")
-agg_time_long[agg_time_long$form %in% c("N/A"),]$form <- c("NA")
+agg_time_long$relative_week_num <- as.numeric(as.character(agg_time_long$relative_week_num))
+agg_time_long[agg_time_long$Form.Type %in% c("S1/S4"),]$Form.Type <- c("S1.S4")
+agg_time_long[agg_time_long$Form.Type %in% c("N/A"),]$Form.Type <- c("NA")
 
 
 #all-time ggplots
-avg_time_by_type <- ddply(agg_time_long, c("service_type", "form", "relative_week"), summarise,
-                                     sum = sum(time),
-                                     mean = mean(time),
-                                     sd = sd(time),
-                                     se = sd / sqrt(length(time)))
+avg_time_by_type <- ddply(agg_time_long, c("Service.Type", "Form.Type", "relative_week_num"), summarise,
+                                     sum = sum(Hours),
+                                     mean = mean(Hours),
+                                     sd = sd(Hours),
+                                     se = sd / sqrt(length(Hours)))
 
 #plots with weekly time by project
-for (i in 1:dim(unique(agg_time_long[,c("service_type", "form")]))[1]){
-    s <- plot_all_time(agg_time_long[agg_time_long$service_type %in% unique(agg_time_long[,c("service_type", "form")])[i,1] &
-                                          agg_time_long$form %in% unique(agg_time_long[,c("service_type", "form")])[i,2] &
-                                       !(agg_time_long$time %in% 0),])
+for (i in 1:dim(unique(agg_time_long[,c("Service.Type", "Form.Type")]))[1]){
+    s <- plot_all_time(agg_time_long[agg_time_long$Service.Type %in% unique(agg_time_long[,c("Service.Type", "Form.Type")])[i,1] &
+                                          agg_time_long$Form.Type %in% unique(agg_time_long[,c("Service.Type", "Form.Type")])[i,2] &
+                                       !(agg_time_long$Hours %in% 0),])
     setwd("C:/R/workspace/workload_profile/output/all_time")
-    if (!is.null(s)){ggsave(paste(unique(agg_time_long[,c("service_type", "form")])[i,1]," ", 
-                                  unique(agg_time_long[,c("service_type", "form")])[i,2],
-                                  "-all", '.png', collapse = ""), 
+    if (!is.null(s)){ggsave(paste(unique(agg_time_long[,c("Service.Type", "Form.Type")])[i,1]," ", 
+                                  unique(agg_time_long[,c("Service.Type", "Form.Type")])[i,2],
+                                  "-all", '.png', sep = ""), 
            plot = s, width = 10.5, height = 7)}
 }
 
 setwd("C:/R/workspace/workload_profile")
 source("plot_functions.r")
 #plots with average weekly time by project
-for (i in 1:dim(unique(avg_time_by_type[,c("service_type", "form")]))[1]){
-  s <- plot_averages(avg_time_by_type[avg_time_by_type$service_type %in% unique(avg_time_by_type[,c("service_type", "form")])[i,1] &
-                                     avg_time_by_type$form %in% unique(avg_time_by_type[,c("service_type", "form")])[i,2],])
+for (i in 1:dim(unique(avg_time_by_type[,c("Service.Type", "Form.Type")]))[1]){
+  s <- plot_averages(avg_time_by_type[avg_time_by_type$Service.Type %in% unique(avg_time_by_type[,c("Service.Type", "Form.Type")])[i,1] &
+                                     avg_time_by_type$Form.Type %in% unique(avg_time_by_type[,c("Service.Type", "Form.Type")])[i,2],])
   setwd("C:/R/workspace/workload_profile/output/weekly_time")
-  if (!is.null(s)){ggsave(paste(unique(avg_time_by_type[,c("service_type", "form")])[i,1]," ",
-                                unique(avg_time_by_type[,c("service_type", "form")])[i,2], 
-                                "-avg", '.png', collapse = ""), 
+  if (!is.null(s)){ggsave(paste(unique(avg_time_by_type[,c("Service.Type", "Form.Type")])[i,1]," ",
+                                unique(avg_time_by_type[,c("Service.Type", "Form.Type")])[i,2], 
+                                "-avg", '.png', sep = ""), 
                           plot = s, width = 10.5, height = 7)}
 }
 
 
 # model by quarter to see if some should be excluded, or if some should be modeled differently
-avg_time_by_quarter_by_type <- ddply(agg_time_long, c("service_type", "form", "reporting_period", "relative_week"), summarise,
-                                     sum = sum(time),
-                                     mean = mean(time),
-                                     sd = sd(time),
-                                     se = sd / sqrt(length(time)))
+avg_time_by_quarter_by_type <- ddply(agg_time_long, c("Service.Type", "Form.Type", "reportingPeriod", "relative_week_num"), summarise,
+                                     sum = sum(Hours),
+                                     mean = mean(Hours),
+                                     sd = sd(Hours),
+                                     se = sd / sqrt(length(Hours)))
 
 setwd("C:/R/workspace/workload_profile")
 source("plot_functions.r")
 #plots with average weekly time by project by quarter
-for (i in 1:dim(unique(avg_time_by_quarter_by_type[,c("service_type", "form")]))[1]){
-    s <- plot_averages_by_quarter(avg_time_by_quarter_by_type[avg_time_by_quarter_by_type$service_type %in% unique(avg_time_by_quarter_by_type[,c("service_type", "form")])[i,1] &
-                                          avg_time_by_quarter_by_type$form %in% unique(avg_time_by_quarter_by_type[,c("service_type", "form")])[i,2],])
+for (i in 1:dim(unique(avg_time_by_quarter_by_type[,c("Service.Type", "Form.Type")]))[1]){
+    s <- plot_averages_by_quarter(avg_time_by_quarter_by_type[avg_time_by_quarter_by_type$Service.Type %in% unique(avg_time_by_quarter_by_type[,c("Service.Type", "Form.Type")])[i,1] &
+                                          avg_time_by_quarter_by_type$Form.Type %in% unique(avg_time_by_quarter_by_type[,c("Service.Type", "Form.Type")])[i,2],])
     setwd("C:/R/workspace/workload_profile/output/weekly_time")
-    if (!is.null(s)){ggsave(paste(unique(avg_time_by_quarter_by_type[,c("service_type", "form")])[i,1], " ", 
-                                  unique(avg_time_by_quarter_by_type[,c("service_type", "form")])[i,2], "-avg_by_qtr", '.png', collapse = ""), 
+    if (!is.null(s)){ggsave(paste(unique(avg_time_by_quarter_by_type[,c("Service.Type", "Form.Type")])[i,1], " ", 
+                                  unique(avg_time_by_quarter_by_type[,c("Service.Type", "Form.Type")])[i,2], "-avg_by_qtr", '.png', sep = ""), 
                             plot = s, width = 10.5, height = 7)}
 }
 
@@ -105,11 +87,11 @@ for (i in 1:dim(unique(avg_time_by_quarter_by_type[,c("service_type", "form")]))
 #playing with plots and lms
 service_types <- c("Standard Import", "Roll Forward", "Full Service Roll Forward", "Detail Tagging")
 form_types <- c("10-Q", "10-K", "Q-Q", "Q-K", "K-Q", "K-K")
-agg_time_model <- aggregate(time ~ service_type + form + relative_week, data = agg_time_long,  FUN = "mean")
-agg_time_model <- agg_time_model[agg_time_model$service_type %in% service_types & agg_time_model$form %in% form_types,]
+agg_time_model <- aggregate(time ~ Service.Type + Form.Type + relative_week, data = agg_time_long,  FUN = "mean")
+agg_time_model <- agg_time_model[agg_time_model$Service.Type %in% service_types & agg_time_model$Form.Type %in% form_types,]
 agg_time_model <- agg_time_model[agg_time_model$relative_week <= 3 & agg_time_model$relative_week >= -20, ]
 agg_time_model <- agg_time_model[agg_time_model$time >= 1,]
-model_params <- ddply(agg_time_model, c("service_type", "form"), summarise,
+model_params <- ddply(agg_time_model, c("Service.Type", "Form.Type"), summarise,
                           num = length(time),
                           sum = sum(time),
                           mean = mean(time),
