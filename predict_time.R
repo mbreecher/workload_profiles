@@ -4,8 +4,12 @@ library(plyr)
 library(reshape2)
 
 #read in project averages to build model
+# setwd("C:/R/workspace/workload_profile/data")
+# load("aggregate_time_for_workload_model.Rdata")
+
+# import tailored estimates from excel
 setwd("C:/R/workspace/workload_profile/data")
-load("aggregate_time_for_workload_model.Rdata")
+agg_time_model <- read.csv("excel_params.csv", header = T, stringsAsFactors = F)
 
 #read in simplified services from collapsed time
 setwd('C:/R/workspace/shared')

@@ -2,6 +2,7 @@ library(RMySQL)
 library(reshape2)
 library(plyr)
 library(ggplot2)
+library(xlsx)
 
 setwd("C:/R/workspace/shared")
 source("transformations.R")
@@ -25,8 +26,9 @@ agg_time_long[agg_time_long$Form.Type %in% c("S1/S4"),]$Form.Type <- c("S1.S4")
 agg_time_long[agg_time_long$Form.Type %in% c("N/A"),]$Form.Type <- c("NA")
 
 
-#all-time ggplots
+#avg time by week by type
 avg_time_by_type <- ddply(agg_time_long, c("Service.Type", "Form.Type", "relative_week_num"), summarise,
+                                    n = length(unique(Account.Name)),
                                      sum = sum(Hours),
                                      mean = mean(Hours),
                                      sd = sd(Hours),
@@ -108,9 +110,41 @@ setwd("C:/R/workspace/workload_profile/data")
 save(model_params, file = "models.Rdata")
 save(agg_time_model, file = "aggregate_time_for_workload_model.Rdata")
 
-setwd("C:/R/workspace/workload_profile/output")
-write.csv(model_params, file = "model_params.csv", row.names = F, na = "") #parameters for lm
-write.csv(agg_time_model, file = "model_inputs.csv", row.names = F, na = "") #parameters for lm
+#excel output to multiple tabs
+write.xlsx(x = timelog_by_week, file = "time_by_week.xlsx",sheetName = "timelog_by_week", row.names = FALSE)
+
+#build spreadsheet with total time by project type in tabs
+for (i in 14:dim(unique(agg_time_long[,c("Service.Type", "Form.Type")]))[1]){
+  s <- agg_time_long[agg_time_long$Service.Type %in% unique(agg_time_long[,c("Service.Type", "Form.Type")])[i,1] &
+                                     agg_time_long$Form.Type %in% unique(agg_time_long[,c("Service.Type", "Form.Type")])[i,2] &
+                                     !(agg_time_long$Hours %in% 0),]
+  setwd("C:/R/workspace/workload_profile/output") 
+  if (!is.null(s)){
+      write.xlsx(x = s, file = "agg_time_long.xlsx",sheetName = 
+                   paste(unique(agg_time_long[,c("Service.Type", "Form.Type")])[i,1]," ", 
+                         unique(agg_time_long[,c("Service.Type", "Form.Type")])[i,2], sep = ""), 
+                 row.names = FALSE, append = TRUE)
+   }
+}
+
+#build spreadsheet with average time by project type by week in tabs
+for (i in 1:dim(unique(avg_time_by_type[,c("Service.Type", "Form.Type")]))[1]){
+  s <- avg_time_by_type[avg_time_by_type$Service.Type %in% unique(avg_time_by_type[,c("Service.Type", "Form.Type")])[i,1] &
+                          avg_time_by_type$Form.Type %in% unique(avg_time_by_type[,c("Service.Type", "Form.Type")])[i,2] &
+                       !(avg_time_by_type$sum %in% 0) & avg_time_by_type$relative_week_num <= 0,]
+  setwd("C:/R/workspace/workload_profile/output") 
+  if (!is.null(s)){
+    write.xlsx(x = s, file = "avg_time_by_type.xlsx",sheetName = 
+                 paste(unique(avg_time_by_type[,c("Service.Type", "Form.Type")])[i,1]," ", 
+                       unique(avg_time_by_type[,c("Service.Type", "Form.Type")])[i,2], sep = ""), 
+               row.names = FALSE, append = TRUE)
+  }
+}
+
+# weekly time by project type export
+# setwd("C:/R/workspace/workload_profile/output")
+# write.csv(model_params, file = "model_params.csv", row.names = F, na = "") #parameters for lm
+# write.csv(agg_time_model, file = "model_inputs.csv", row.names = F, na = "") #parameters for lm
 
   
 # plot_model <- agg_time_model[agg_time_model$service_type %in% c("Standard Import") & 
