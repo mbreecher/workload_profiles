@@ -42,7 +42,7 @@ head(services)
     theme(axis.text.y = element_blank()) +
     scale_x_continuous(breaks = c(0, 10,12), labels = c("Jan 1", "Mar 1", "Mar 16")) +
     ggtitle("PS Team Expected Workload by week")
-  by_psm_plot <- ggplot(totals_psm, aes(calendar_week, predicted, color = PSM, order = max(predicted))) + 
+  by_psm_plot <- ggplot(totals_psm, aes(calendar_week, time, color = PSM, order = max(time))) + 
     geom_point() + geom_line() +
     guides(col = guide_legend(ncol =3))
   high_psm_plot <- ggplot(heavy_load, aes(calendar_week, time, color = PSM)) + 
