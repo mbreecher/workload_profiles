@@ -35,6 +35,11 @@ for (i in 1:dim(unique(avg_time_by_type[,c("Service.Type", "Form.Type")]))[1]){
 setwd("C:/R/workspace/workload_profile/output")
 write.csv(collapsed, file = "summarized_collapsed_time.csv", row.names = F, na = "")
 
+setwd("C:/R/workspace/worload_profiles")
+source("predict_time.R")
+setwd("C:/R/workspace/workload_profile/output")
+write.csv(workload, file = "workload_avg.csv", row.names = F, na = "")
+
 # weekly time by project type export
 # setwd("C:/R/workspace/workload_profile/output")
 # write.csv(model_params, file = "model_params.csv", row.names = F, na = "") #parameters for lm
