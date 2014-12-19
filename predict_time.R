@@ -19,39 +19,47 @@ services <- import_services()
 services <- services[services$reportingPeriod %in% c("20144"),]
 services$filing_week <- week(services$filing.estimate)
 
-head(services)
 
 #averages
-  #cast model wide and merge with services to get workload - with averages
-  model_time <- dcast(agg_time_model, service_type + form ~ relative_week, sum, value.var = "time")
-  workload <- merge(services, model_time, by.x = c("Service.Type", "Form.Type"),
+  #cast model wide and merge with services to get workload based on workload profiles
+  model_time_ps <- dcast(agg_time_model, service_type + form ~ relative_week, sum, value.var = "psm_time")
+  model_time_srps <- dcast(agg_time_model, service_type + form ~ relative_week, sum, value.var = "srpsm_time")
+  workload_ps <- merge(services, model_time_ps, by.x = c("Service.Type", "Form.Type"),
                     by.y = c("service_type", "form"), all.x = T)
-  workload <- melt(workload, id.vars = names(services), variable.name = "relative_week", value.name = "time")
+  workload_srps <- merge(services, model_time_srps, by.x = c("Service.Type", "Form.Type"),
+                     by.y = c("service_type", "form"), all.x = T)
+  workload_ps <- melt(workload_ps, id.vars = names(services), variable.name = "relative_week", value.name = "psm_time")
+  workload_srps <- melt(workload_srps, id.vars = names(services), variable.name = "relative_week", value.name = "srpsm_time")
+  
+  
+  #join PS and Sr PS dataframes
+  workload_srps <- workload_srps[,names(workload_srps) %in% c("Services.ID", "relative_week", "srpsm_time")]
+  workload <- merge(workload_ps, workload_srps, by = c("Services.ID", "relative_week"))
   workload$relative_week <- as.numeric(as.character(workload$relative_week))
   workload$calendar_week <- workload$filing_week + workload$relative_week
   
-  totals <- aggregate(time ~ calendar_week, workload[workload$time >0 ,], FUN = sum)
-  totals_psm <- aggregate(time ~ PSM + calendar_week, workload[workload$time >0 ,], FUN = sum)
-  loaded <- unique(totals_psm[totals_psm$time >= 60 & !is.na(totals_psm$time),]$PSM)
-  heavy_load <- aggregate(time ~ PSM + calendar_week, workload[workload$time >0 & workload$PSM %in% loaded ,], FUN = sum)
+  totals <- aggregate(psm_time ~ calendar_week, workload[workload$psm_time >0 ,], FUN = sum)
+  totals_psm <- aggregate(psm_time ~ PSM + calendar_week, workload[workload$psm_time >0 ,], FUN = sum)
+  loaded <- unique(totals_psm[totals_psm$psm_time >= 60 & !is.na(totals_psm$psm_time),]$PSM)
+  heavy_load <- aggregate(psm_time ~ PSM + calendar_week, workload[workload$psm_time >0 & workload$PSM %in% loaded ,], FUN = sum)
   
   #some plots
-#   totals_plot <- ggplot(totals, aes(calendar_week, time)) + geom_point()
-  totals_plot <- ggplot(totals, aes(calendar_week, time)) + geom_point() + geom_line(color = "lightgreen", size = 2, alpha=.5) +
+#   totals_plot <- ggplot(totals, aes(calendar_week, psm_time)) + geom_point()
+  totals_plot <- ggplot(totals, aes(calendar_week, psm_time)) + geom_point() + geom_line(color = "lightgreen", size = 2, alpha=.5) +
     #geom_point(data = py_agg, aes(week, Hours)) + geom_line(data = py_agg, aes(week, Hours),color = "gray", size = 2, alpha=.5) +
     theme(axis.text.y = element_blank()) +
     scale_x_continuous(breaks = c(0, 10,12), labels = c("Jan 1", "Mar 1", "Mar 16")) +
     ggtitle("PS Team Expected Workload by week")
-  by_psm_plot <- ggplot(totals_psm, aes(calendar_week, time, color = PSM, order = max(time))) + 
+  by_psm_plot <- ggplot(totals_psm, aes(calendar_week, psm_time, color = PSM, order = max(psm_time))) + 
     geom_point() + geom_line() +
     guides(col = guide_legend(ncol =3))
-  high_psm_plot <- ggplot(heavy_load, aes(calendar_week, time, color = PSM)) + 
+  high_psm_plot <- ggplot(heavy_load, aes(calendar_week, psm_time, color = PSM)) + 
     geom_point() + geom_line()
 
 #poly models
   modeled_time <- ddply(agg_time_model, c("service_type", "form"), 
                       .fun = function(x){
-                        mod_x <- with(x,lm(time ~ poly(relative_week, 4, raw = T)))
+                        mod_x <- with(x,lm(psm_time ~ poly(relative_week, 4, raw = T)))
                         predictor <- data.frame(relative_week = x$relative_week)
                         predicted_hours <- data.frame(relative_week = x$relative_week, predicted = predict(mod_x, predictor))
                       })
@@ -87,5 +95,5 @@ write.csv(workload_predicted, file = "workload_predict.csv", row.names = F, na =
 
 #temp plots **
 totals_all <- merge(totals, totals_p, by = c("calendar_week"))
-ggplot(totals_all) + geom_point(aes(calendar_week, time)) + geom_line(aes(calendar_week, time, color = 'blue')) +
+ggplot(totals_all) + geom_point(aes(calendar_week, psm_time)) + geom_line(aes(calendar_week, psm_time, color = 'blue')) +
                     geom_point(aes(calendar_week, predicted)) + geom_line(aes(calendar_week, predicted, color = 'red'))
