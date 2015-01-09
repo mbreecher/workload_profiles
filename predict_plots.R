@@ -1,4 +1,4 @@
-setwd("C:/R/workspace/worload_profiles")
+setwd("C:/R/workspace/workload_profile")
 source("predict_time.R")
 
 totals_p <- aggregate(predicted ~ calendar_week, workload_predicted[workload_predicted$predicted >0 &

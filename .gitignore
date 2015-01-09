@@ -2,5 +2,6 @@
 /source
 /QA
 /data
+/predict
 .Rhistory
 models.Rdata

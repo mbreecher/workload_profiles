@@ -1,3 +1,5 @@
+#dependencies services_for_pshistory_R
+
 library(ggplot2)
 library(RMySQL)
 library(plyr)
@@ -36,3 +38,6 @@ services$filing_week <- week(services$filing.estimate)
   workload <- merge(workload_ps, workload_srps, by = c("Services.ID", "relative_week"))
   workload$relative_week <- as.numeric(as.character(workload$relative_week))
   workload$calendar_week <- workload$filing_week + workload$relative_week
+
+setwd("C:/R/workspace/workload_profile/predict")
+write.csv(workload, "workload.csv", row.names = F)
