@@ -1,6 +1,9 @@
 setwd("C:/R/workspace/workload_profile")
 source("predict_time.R")
 
+workload_predicted <- workload
+workload_predicted$predicted <- workload_predicted$psm_time
+
 totals_p <- aggregate(predicted ~ calendar_week, workload_predicted[workload_predicted$predicted >0 &
                                                                       !is.na(workload_predicted$predicted),], FUN = sum)
 totals_psm <- aggregate(predicted ~ PSM + calendar_week, workload_predicted[workload_predicted$predicted >0 ,], FUN = sum)
