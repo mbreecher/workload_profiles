@@ -15,7 +15,7 @@ sec_data <- sec_data[sec_data$actual_offset <= sec_data$reporting_offset &
                        sec_data$form %in% c("10-Q", "10-K"),]
 
 str <- proc.time()
-predicted_offset <- ddply(sec_data, .var = c("name", "reporting_offset", "cik", "form"), .fun = function(x){
+predicted_offset <- ddply(sec_data, .var = c("reporting_offset", "cik", "form"), .fun = function(x){
   mean <- mean(x$actual_offset)
   sd <- sd(x$actual_offset)
   n <- dim(x)[1]
