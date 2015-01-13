@@ -20,7 +20,7 @@ predicted_offset <- ddply(sec_data, .var = c("reporting_offset", "cik", "form"),
   sd <- sd(x$actual_offset)
   n <- dim(x)[1]
   
-  data.frame(mean = mean, sd = sd, n = n)
+  data.frame(mean = mean, sd = sd, n = n, filing_date = x$filing_date)
 
 })
 proc.time() - str
