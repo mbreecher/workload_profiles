@@ -18,8 +18,27 @@ setwd('C:/R/workspace/shared')
 source("import_functions.R")
 services <- import_services()
 services <- services[services$reportingPeriod %in% c("20144"),]
-services$filing_week <- week(services$filing.estimate)
+#use filing date prediction when possible
+setwd("C:/R/workspace/workload_profile")
+source("predict_filing_date.R")
+predicted_filing_date <- ddply(services, .var = c("Services.ID"), .fun = function(x){
+  if(x$Form.Type %in% c("Q-Q", "K-Q", "10-Q")){
+    loop <- predicted_offset[predicted_offset$cik %in% x$CIK & predicted_offset$form %in% "10-Q",]
+  }else if (x$Form.Type %in% c("Q-K", "K-K", "10-K")){
+    loop <- predicted_offset[predicted_offset$cik %in% x$CIK & predicted_offset$form %in% "10-K",]
+  }
+  if (dim(loop)[1] > 1){loop <- loop[loop$filing_date == max(loop$filing_date),]}
+  if (dim(loop)[1] == 0){
+    predicted_date <- x$filing.estimate
+  }else if(loop$sd <= 4 & !is.na(loop$sd)){
+    predicted_date <- x$Quarter.End + loop$mean
+  }else{
+    predicted_date <- x$filing.estimate
+  }
+  data.frame(filing_week = week(predicted_date))
+})
 
+services <- merge(services, predicted_filing_date, by = c("Services.ID"), all.x = T)
 
   #averages
   #cast model wide and merge with services to get workload based on workload profiles
