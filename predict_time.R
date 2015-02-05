@@ -73,5 +73,14 @@ services$filing_date_week <- as.numeric(services$filing_date_week)
   workload$filing_calendar_week <- workload$filing_date_week + workload$relative_week #based on filing date
   workload$predicted_calendar_week <- workload$predicted_filing_week + workload$relative_week #based on estimated filing date
 
+workload <- workload[,names(workload) %in% c("Services.ID","relative_week","Account.Name","Solution.Name","Sales.Status",
+                                             "Sr.PSM","PSM","Service.Name","CS.PS","Service.Type","Form.Type","Quarter.End",
+                                             "CIK","Filing.Deadline","Filing.Date","Status","XBRL.Status",
+                                             "OpportunityLineItem.Id","Registrant.Type","CSM","Sr.CSM","Churn.Date","Year.End",
+                                             "Goodwill.Hours.Available","reportingOffset","filing.estimate","filingPeriod",
+                                             "reportingPeriod","predicted_filing_week","deadline_filing_week","filing_date_week",
+                                             "psm_time","srpsm_time","deadline_calendar_week","filing_calendar_week","predicted_calendar_week"
+)]
+
 setwd("C:/R/workspace/workload_profile/predict")
 write.csv(workload, "workload.csv", row.names = F)
