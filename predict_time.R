@@ -32,25 +32,24 @@ predicted_filing_date <- ddply(services, .var = c("Services.ID"), .fun = functio
     predicted_date <- x$filing.estimate
   }else{
     if (dim(loop)[1] > 1){loop <- loop[loop$filing_date == max(loop$filing_date),]}
-    if (dim(loop)[1] <= 1){
+    if (dim(loop)[1] %in% 0){
       predicted_date <- x$filing.estimate
-    }else if(!is.na(loop$sd)){
+    }else if(!is.na(loop$sd) & loop$sd <= 4){
       predicted_date <- x$Quarter.End + loop$mean
     }else{
       predicted_date <- x$filing.estimate
     }  
   }
-  data.frame(predicted_filing_week = week(predicted_date))
+  #data.frame(predicted_filing_week = week(predicted_date))
+  data.frame(predicted_filing_week = as.numeric(format(predicted_date, format = "%U")))
 })
 
 services <- merge(services, predicted_filing_date, by = c("Services.ID"), all.x = T)
 
 # services$filing_week <- week(services$filing.estimate)
-services$deadline_filing_week <- format(services$filing.estimate, format = "%W")
-services$deadline_filing_week <- as.numeric(services$deadline_filing_week)
+services$deadline_filing_week <- as.numeric(format(services$filing.estimate, format = "%U"))
 
-services$filing_date_week <- format(services$Filing.Date, format = "%W")
-services$filing_date_week <- as.numeric(services$filing_date_week)
+services$filing_date_week <- as.numeric(format(services$Filing.Date, format = "%U"))
 
 
   #averages
@@ -72,15 +71,16 @@ services$filing_date_week <- as.numeric(services$filing_date_week)
   workload$deadline_calendar_week <- workload$deadline_filing_week + workload$relative_week #based on filing deadline
   workload$filing_calendar_week <- workload$filing_date_week + workload$relative_week #based on filing date
   workload$predicted_calendar_week <- workload$predicted_filing_week + workload$relative_week #based on estimated filing date
-
-workload <- workload[,names(workload) %in% c("Services.ID","relative_week","Account.Name","Solution.Name","Sales.Status",
-                                             "Sr.PSM","PSM","Service.Name","CS.PS","Service.Type","Form.Type","Quarter.End",
-                                             "CIK","Filing.Deadline","Filing.Date","Status","XBRL.Status",
-                                             "OpportunityLineItem.Id","Registrant.Type","CSM","Sr.CSM","Churn.Date","Year.End",
-                                             "Goodwill.Hours.Available","reportingOffset","filing.estimate","filingPeriod",
-                                             "reportingPeriod","predicted_filing_week","deadline_filing_week","filing_date_week",
-                                             "psm_time","srpsm_time","deadline_calendar_week","filing_calendar_week","predicted_calendar_week"
-)]
+  
+  valid <- c("Services.ID","relative_week","Account.Name","Solution.Name","Sales.Status",
+             "Sr.PSM","PSM","Service.Name","CS.PS","Service.Type","Form.Type","Quarter.End",
+             "CIK","Filing.Deadline","Filing.Date","Status","XBRL.Status",
+             "OpportunityLineItem.Id","Registrant.Type","CSM","Sr.CSM","Churn.Date","Year.End",
+             "Goodwill.Hours.Available","reportingOffset","filing.estimate","filingPeriod",
+             "reportingPeriod","predicted_filing_week","deadline_filing_week","filing_date_week",
+             "psm_time","srpsm_time","deadline_calendar_week","filing_calendar_week","predicted_calendar_week")
+workload <- workload[,names(workload) %in% valid]
+workload <- workload[,match(valid, names(workload))]
 
 setwd("C:/R/workspace/workload_profile/predict")
 write.csv(workload, "workload.csv", row.names = F)
